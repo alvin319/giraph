@@ -136,6 +136,8 @@ public class NettyClient {
   private final Mapper<?, ?, ?, ?>.Context context;
   /** Client bootstrap */
   private final Bootstrap bootstrap;
+  /** Prefix for FDC benchmark metric dump */
+  public static final String FDC_PREFIX = "FDC";
   /**
    * Map of the peer connections, mapping from remote socket address to client
    * meta data
@@ -847,6 +849,17 @@ public class NettyClient {
       LOG.info("waitAllRequests: Finished all requests. " +
           inboundByteCounter.getMetrics() + "\n" + outboundByteCounter
           .getMetrics());
+
+      // Add custom metric dump for FDC benchmarks
+      String actionName = FDC_PREFIX + "_NETTY_WORKER_STATS";
+      StringBuilder metricOutput = new StringBuilder();
+      metricOutput.append(actionName);
+      metricOutput.append(',');
+      metricOutput.append(inboundByteCounter.getMetricsCSV());
+      metricOutput.append(',');
+      metricOutput.append(outboundByteCounter.getMetricsCSV());
+
+      LOG.info(metricOutput.toString());
     }
   }
 

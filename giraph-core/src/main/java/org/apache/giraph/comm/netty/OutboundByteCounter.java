@@ -35,63 +35,73 @@ import io.netty.channel.ChannelHandler.Sharable;
  */
 @Sharable
 public class OutboundByteCounter extends ChannelOutboundHandlerAdapter
-  implements ByteCounter, ResetSuperstepMetricsObserver {
-  /** Class logger */
-  private static final Logger LOG =
-      Logger.getLogger(OutboundByteCounter.class);
-  /** ByteCounter delegate object */
-  private final ByteCounterDelegate delegate = new ByteCounterDelegate(false);
+        implements ByteCounter, ResetSuperstepMetricsObserver {
+    /**
+     * Class logger
+     */
+    private static final Logger LOG =
+            Logger.getLogger(OutboundByteCounter.class);
+    /**
+     * ByteCounter delegate object
+     */
+    private final ByteCounterDelegate delegate = new ByteCounterDelegate(false);
 
-  /** Constructor */
-  public OutboundByteCounter() {
-    // Initialize Metrics
-    GiraphMetrics.get().addSuperstepResetObserver(this);
-  }
-
-  public long getBytesSent() {
-    return delegate.getBytesProcessed();
-  }
-
-  /**
-   * @return Mbytes sent / sec in the current interval
-   */
-  public double getMbytesPerSecSent() {
-    return delegate.getMbytesPerSecProcessed();
-  }
-
-  @Override
-  public void write(ChannelHandlerContext ctx, Object msg,
-    ChannelPromise promise) throws Exception {
-    if (msg instanceof ByteBuf) {
-      ByteBuf buf = (ByteBuf) msg;
-      int sentBytes = delegate.byteBookkeeper(buf);
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("write: " + ctx.channel().toString() +
-            " buffer size = " + sentBytes + ", total bytes = " + getBytesSent()
-        );
-      }
+    /**
+     * Constructor
+     */
+    public OutboundByteCounter() {
+        // Initialize Metrics
+        GiraphMetrics.get().addSuperstepResetObserver(this);
     }
-    ctx.writeAndFlush(msg, promise);
-  }
 
-  @Override
-  public void newSuperstep(SuperstepMetricsRegistry superstepMetrics) {
-    delegate.newSuperstep(superstepMetrics);
-  }
+    public long getBytesSent() {
+        return delegate.getBytesProcessed();
+    }
 
-  @Override
-  public void resetAll() {
-    delegate.resetAll();
-  }
+    /**
+     * @return Mbytes sent / sec in the current interval
+     */
+    public double getMbytesPerSecSent() {
+        return delegate.getMbytesPerSecProcessed();
+    }
 
-  @Override
-  public String getMetrics() {
-    return delegate.getMetrics();
-  }
+    @Override
+    public void write(ChannelHandlerContext ctx, Object msg,
+                      ChannelPromise promise) throws Exception {
+        if (msg instanceof ByteBuf) {
+            ByteBuf buf = (ByteBuf) msg;
+            int sentBytes = delegate.byteBookkeeper(buf);
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("write: " + ctx.channel().toString() +
+                        " buffer size = " + sentBytes + ", total bytes = " + getBytesSent()
+                );
+            }
+        }
+        ctx.writeAndFlush(msg, promise);
+    }
 
-  @Override
-  public String getMetricsWindow(int minMsecsWindow) {
-    return delegate.getMetricsWindow(minMsecsWindow);
-  }
+    @Override
+    public void newSuperstep(SuperstepMetricsRegistry superstepMetrics) {
+        delegate.newSuperstep(superstepMetrics);
+    }
+
+    @Override
+    public void resetAll() {
+        delegate.resetAll();
+    }
+
+    @Override
+    public String getMetrics() {
+        return delegate.getMetrics();
+    }
+
+    public String getMetricsCSV() {
+        return delegate.getMetricsCSV();
+    }
+
+    @Override
+    public String getMetricsWindow(int minMsecsWindow) {
+        return delegate.getMetricsWindow(minMsecsWindow);
+    }
 }
 

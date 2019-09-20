@@ -92,6 +92,8 @@ public class ComputeCallable<I extends WritableComparable, V extends Writable,
   private SimpleVertexWriter<I, V, E> vertexWriter;
   /** Get the start time in nanos */
   private final long startNanos = TIME.getNanoseconds();
+  /** Prefix for FDC benchmark metric dump */
+  public static final String FDC_PREFIX = "FDC";
 
   // Per-Superstep Metrics
   /** Messages sent */
@@ -234,6 +236,30 @@ public class ComputeCallable<I extends WritableComparable, V extends Writable,
           "partitions was " + String.format("%.2f s", timeProcessing / 1000.0) +
           ", time spent on gc was " +
           String.format("%.2f s", timeDoingGC / 1000.0) + ")");
+
+      // Add custom metric dump for FDC benchmarks
+      String actionName = FDC_PREFIX + "_COMPUTATION_SUPERSTEP";
+      StringBuilder metricOutput = new StringBuilder();
+      int numPartitions = partitionStatsList.size();
+      double waitingSeconds = timeWaiting / 1000.0;
+      double processingSeconds = timeProcessing / 1000.0;
+      double GCSeconds = timeDoingGC / 1000.0;
+
+      metricOutput.append(actionName);
+      metricOutput.append(',');
+      metricOutput.append(graphState.getSuperstep());
+      metricOutput.append(',');
+      metricOutput.append(seconds);
+      metricOutput.append(',');
+      metricOutput.append(waitingSeconds);
+      metricOutput.append(',');
+      metricOutput.append(GCSeconds);
+      metricOutput.append(',');
+      metricOutput.append(processingSeconds);
+      metricOutput.append(',');
+      metricOutput.append(numPartitions);
+
+      LOG.info(metricOutput.toString());
     }
     try {
       workerClientRequestProcessor.flush();

@@ -36,185 +36,207 @@ import java.util.concurrent.TimeUnit;
  * Per-superstep metrics for a Worker.
  */
 public class WorkerSuperstepMetrics implements Writable {
-  /** Total network communication time */
-  private LongAndTimeUnit commTimer;
-  /** Time for all compute calls to complete */
-  private LongAndTimeUnit computeAllTimer;
-  /** Time till first message gets flushed */
-  private LongAndTimeUnit timeToFirstMsg;
-  /** Total superstep time */
-  private LongAndTimeUnit superstepTimer;
-  /** Time spent waiting for other workers to finish */
-  private LongAndTimeUnit waitRequestsTimer;
-  /** Time spent doing GC in a superstep */
-  private LongAndTimeUnit superstepGCTimer;
-  /** Number of bytes loaded from disk to memory in out-of-core mechanism */
-  private long bytesLoadedFromDisk;
-  /** Number of bytes stored from memory to disk in out-of-core mechanism */
-  private long bytesStoredOnDisk;
-  /** Percentage of graph kept in memory */
-  private double graphPercentageInMemory;
+    /**
+     * Total network communication time
+     */
+    private LongAndTimeUnit commTimer;
+    /**
+     * Time for all compute calls to complete
+     */
+    private LongAndTimeUnit computeAllTimer;
+    /**
+     * Time till first message gets flushed
+     */
+    private LongAndTimeUnit timeToFirstMsg;
+    /**
+     * Total superstep time
+     */
+    private LongAndTimeUnit superstepTimer;
+    /**
+     * Time spent waiting for other workers to finish
+     */
+    private LongAndTimeUnit waitRequestsTimer;
+    /**
+     * Time spent doing GC in a superstep
+     */
+    private LongAndTimeUnit superstepGCTimer;
+    /**
+     * Number of bytes loaded from disk to memory in out-of-core mechanism
+     */
+    private long bytesLoadedFromDisk;
+    /**
+     * Number of bytes stored from memory to disk in out-of-core mechanism
+     */
+    private long bytesStoredOnDisk;
+    /**
+     * Percentage of graph kept in memory
+     */
+    private double graphPercentageInMemory;
 
-  /**
-   * Constructor
-   */
-  public WorkerSuperstepMetrics() {
-    commTimer = new LongAndTimeUnit();
-    computeAllTimer = new LongAndTimeUnit();
-    timeToFirstMsg = new LongAndTimeUnit();
-    superstepTimer = new LongAndTimeUnit();
-    waitRequestsTimer = new LongAndTimeUnit();
-    superstepGCTimer = new LongAndTimeUnit();
-    superstepGCTimer.setTimeUnit(TimeUnit.MILLISECONDS);
-    bytesLoadedFromDisk = 0;
-    bytesStoredOnDisk = 0;
-    graphPercentageInMemory = 100;
-  }
-
-  /**
-   * Read metric values from global MetricsRegistry.
-   *
-   * @return this object, for chaining
-   */
-  public WorkerSuperstepMetrics readFromRegistry() {
-    readGiraphTimer(GraphTaskManager.TIMER_COMMUNICATION_TIME, commTimer);
-    readGiraphTimer(GraphTaskManager.TIMER_COMPUTE_ALL, computeAllTimer);
-    readGiraphTimer(GraphTaskManager.TIMER_TIME_TO_FIRST_MSG, timeToFirstMsg);
-    readGiraphTimer(GraphTaskManager.TIMER_SUPERSTEP_TIME, superstepTimer);
-    readGiraphTimer(BspServiceWorker.TIMER_WAIT_REQUESTS, waitRequestsTimer);
-    SuperstepMetricsRegistry registry = GiraphMetrics.get().perSuperstep();
-    superstepGCTimer.setValue(
-        registry.getCounter(GraphTaskManager.TIMER_SUPERSTEP_GC_TIME).count());
-    bytesLoadedFromDisk =
-        registry.getCounter(OutOfCoreIOCallable.BYTES_LOAD_FROM_DISK).count();
-    bytesStoredOnDisk =
-        registry.getCounter(OutOfCoreIOCallable.BYTES_STORE_TO_DISK).count();
-    Gauge<Double> gauge =
-        registry.getExistingGauge(OutOfCoreEngine.GRAPH_PERCENTAGE_IN_MEMORY);
-    if (gauge != null) {
-      graphPercentageInMemory = gauge.value();
+    /**
+     * Constructor
+     */
+    public WorkerSuperstepMetrics() {
+        commTimer = new LongAndTimeUnit();
+        computeAllTimer = new LongAndTimeUnit();
+        timeToFirstMsg = new LongAndTimeUnit();
+        superstepTimer = new LongAndTimeUnit();
+        waitRequestsTimer = new LongAndTimeUnit();
+        superstepGCTimer = new LongAndTimeUnit();
+        superstepGCTimer.setTimeUnit(TimeUnit.MILLISECONDS);
+        bytesLoadedFromDisk = 0;
+        bytesStoredOnDisk = 0;
+        graphPercentageInMemory = 100;
     }
-    return this;
-  }
 
-  /**
-   * Read data from GiraphTimer into a LongAndTimeUnit.
-   *
-   * @param name String name of Gauge to retrieve.
-   * @param data LongAndTimeUnit to read data into.
-   */
-  private void readGiraphTimer(String name, LongAndTimeUnit data) {
-    Gauge<Long> gauge = GiraphMetrics.get().perSuperstep().
-        getExistingGauge(name);
-    if (gauge instanceof GiraphTimer) {
-      GiraphTimer giraphTimer = (GiraphTimer) gauge;
-      data.setTimeUnit(giraphTimer.getTimeUnit());
-      data.setValue(giraphTimer.value());
-    } else if (gauge != null) {
-      throw new IllegalStateException(name + " is not a GiraphTimer");
+    /**
+     * Read metric values from global MetricsRegistry.
+     *
+     * @return this object, for chaining
+     */
+    public WorkerSuperstepMetrics readFromRegistry() {
+        readGiraphTimer(GraphTaskManager.TIMER_COMMUNICATION_TIME, commTimer);
+        readGiraphTimer(GraphTaskManager.TIMER_COMPUTE_ALL, computeAllTimer);
+        readGiraphTimer(GraphTaskManager.TIMER_TIME_TO_FIRST_MSG, timeToFirstMsg);
+        readGiraphTimer(GraphTaskManager.TIMER_SUPERSTEP_TIME, superstepTimer);
+        readGiraphTimer(BspServiceWorker.TIMER_WAIT_REQUESTS, waitRequestsTimer);
+        SuperstepMetricsRegistry registry = GiraphMetrics.get().perSuperstep();
+        superstepGCTimer.setValue(
+                registry.getCounter(GraphTaskManager.TIMER_SUPERSTEP_GC_TIME).count());
+        bytesLoadedFromDisk =
+                registry.getCounter(OutOfCoreIOCallable.BYTES_LOAD_FROM_DISK).count();
+        bytesStoredOnDisk =
+                registry.getCounter(OutOfCoreIOCallable.BYTES_STORE_TO_DISK).count();
+        Gauge<Double> gauge =
+                registry.getExistingGauge(OutOfCoreEngine.GRAPH_PERCENTAGE_IN_MEMORY);
+        if (gauge != null) {
+            graphPercentageInMemory = gauge.value();
+        }
+        return this;
     }
-  }
 
-  /**
-   * Human readable dump of metrics stored here.
-   *
-   * @param superstep long number of superstep.
-   * @param out PrintStream to write to.
-   * @return this object, for chaining
-   */
-  public WorkerSuperstepMetrics print(long superstep, PrintStream out) {
-    out.println();
-    out.println("--- METRICS: superstep " + superstep + " ---");
-    out.println("  superstep time: " + superstepTimer);
-    out.println("  compute all partitions: " + computeAllTimer);
-    out.println("  time spent in gc: " + superstepGCTimer);
-    out.println("  bytes transferred in out-of-core: " +
-        (bytesLoadedFromDisk + bytesStoredOnDisk));
-    out.println("  network communication time: " + commTimer);
-    out.println("  time to first message: " + timeToFirstMsg);
-    out.println("  wait on requests time: " + waitRequestsTimer);
-    return this;
-  }
+    /**
+     * Read data from GiraphTimer into a LongAndTimeUnit.
+     *
+     * @param name String name of Gauge to retrieve.
+     * @param data LongAndTimeUnit to read data into.
+     */
+    private void readGiraphTimer(String name, LongAndTimeUnit data) {
+        Gauge<Long> gauge = GiraphMetrics.get().perSuperstep().
+                getExistingGauge(name);
+        if (gauge instanceof GiraphTimer) {
+            GiraphTimer giraphTimer = (GiraphTimer) gauge;
+            data.setTimeUnit(giraphTimer.getTimeUnit());
+            data.setValue(giraphTimer.value());
+        } else if (gauge != null) {
+            throw new IllegalStateException(name + " is not a GiraphTimer");
+        }
+    }
 
-  /**
-   * @return Communication timer
-   */
-  public long getCommTimer() {
-    return commTimer.getValue();
-  }
+    /**
+     * Human readable dump of metrics stored here.
+     *
+     * @param superstep long number of superstep.
+     * @param out       PrintStream to write to.
+     * @return this object, for chaining
+     */
+    public WorkerSuperstepMetrics print(long superstep, PrintStream out) {
+        out.println();
+        out.println("--- METRICS: superstep " + superstep + " ---");
+        out.println("  superstep time: " + superstepTimer);
+        out.println("  compute all partitions: " + computeAllTimer);
+        out.println("  time spent in gc: " + superstepGCTimer);
+        out.println("  bytes transferred in out-of-core: " +
+                (bytesLoadedFromDisk + bytesStoredOnDisk));
+        out.println("  network communication time: " + commTimer);
+        out.println("  time to first message: " + timeToFirstMsg);
+        out.println("  wait on requests time: " + waitRequestsTimer);
+        return this;
+    }
 
-  /**
-   * @return Total compute timer
-   */
-  public long getComputeAllTimer() {
-    return computeAllTimer.getValue();
-  }
+    public String toString() {
+        return superstepTimer + "," + computeAllTimer + "," + superstepGCTimer + "," + (bytesLoadedFromDisk + bytesStoredOnDisk) + "," + commTimer + "," + timeToFirstMsg + "," + waitRequestsTimer;
+    }
 
-  /**
-   * @return timer between start time and first message flushed.
-   */
-  public long getTimeToFirstMsg() {
-    return timeToFirstMsg.getValue();
-  }
+    /**
+     * @return Communication timer
+     */
+    public long getCommTimer() {
+        return commTimer.getValue();
+    }
 
-  /**
-   * @return timer for superstep time
-   */
-  public long getSuperstepTimer() {
-    return superstepTimer.getValue();
-  }
+    /**
+     * @return Total compute timer
+     */
+    public long getComputeAllTimer() {
+        return computeAllTimer.getValue();
+    }
 
-  /**
-   * @return timer waiting for other workers
-   */
-  public long getWaitRequestsTimer() {
-    return waitRequestsTimer.getValue();
-  }
+    /**
+     * @return timer between start time and first message flushed.
+     */
+    public long getTimeToFirstMsg() {
+        return timeToFirstMsg.getValue();
+    }
 
-  /**
-   * @return number of bytes loaded from disk by out-of-core mechanism (if any
-   *         is used)
-   */
-  public long getBytesLoadedFromDisk() {
-    return bytesLoadedFromDisk;
-  }
+    /**
+     * @return timer for superstep time
+     */
+    public long getSuperstepTimer() {
+        return superstepTimer.getValue();
+    }
 
-  /**
-   * @return number of bytes stored on disk by out-of-core mechanism (if any is
-   *         used)
-   */
-  public long getBytesStoredOnDisk() {
-    return bytesStoredOnDisk;
-  }
+    /**
+     * @return timer waiting for other workers
+     */
+    public long getWaitRequestsTimer() {
+        return waitRequestsTimer.getValue();
+    }
 
-  /**
-   * @return a rough estimate of percentage of graph in memory
-   */
-  public double getGraphPercentageInMemory() {
-    return graphPercentageInMemory;
-  }
+    /**
+     * @return number of bytes loaded from disk by out-of-core mechanism (if any
+     * is used)
+     */
+    public long getBytesLoadedFromDisk() {
+        return bytesLoadedFromDisk;
+    }
 
-  @Override
-  public void readFields(DataInput dataInput) throws IOException {
-    commTimer.setValue(dataInput.readLong());
-    computeAllTimer.setValue(dataInput.readLong());
-    timeToFirstMsg.setValue(dataInput.readLong());
-    superstepTimer.setValue(dataInput.readLong());
-    waitRequestsTimer.setValue(dataInput.readLong());
-    bytesLoadedFromDisk = dataInput.readLong();
-    bytesStoredOnDisk = dataInput.readLong();
-    graphPercentageInMemory = dataInput.readDouble();
-  }
+    /**
+     * @return number of bytes stored on disk by out-of-core mechanism (if any is
+     * used)
+     */
+    public long getBytesStoredOnDisk() {
+        return bytesStoredOnDisk;
+    }
 
-  @Override
-  public void write(DataOutput dataOutput) throws IOException {
-    dataOutput.writeLong(commTimer.getValue());
-    dataOutput.writeLong(computeAllTimer.getValue());
-    dataOutput.writeLong(timeToFirstMsg.getValue());
-    dataOutput.writeLong(superstepTimer.getValue());
-    dataOutput.writeLong(waitRequestsTimer.getValue());
-    dataOutput.writeLong(bytesLoadedFromDisk);
-    dataOutput.writeLong(bytesStoredOnDisk);
-    dataOutput.writeDouble(graphPercentageInMemory);
-  }
+    /**
+     * @return a rough estimate of percentage of graph in memory
+     */
+    public double getGraphPercentageInMemory() {
+        return graphPercentageInMemory;
+    }
+
+    @Override
+    public void readFields(DataInput dataInput) throws IOException {
+        commTimer.setValue(dataInput.readLong());
+        computeAllTimer.setValue(dataInput.readLong());
+        timeToFirstMsg.setValue(dataInput.readLong());
+        superstepTimer.setValue(dataInput.readLong());
+        waitRequestsTimer.setValue(dataInput.readLong());
+        bytesLoadedFromDisk = dataInput.readLong();
+        bytesStoredOnDisk = dataInput.readLong();
+        graphPercentageInMemory = dataInput.readDouble();
+    }
+
+    @Override
+    public void write(DataOutput dataOutput) throws IOException {
+        dataOutput.writeLong(commTimer.getValue());
+        dataOutput.writeLong(computeAllTimer.getValue());
+        dataOutput.writeLong(timeToFirstMsg.getValue());
+        dataOutput.writeLong(superstepTimer.getValue());
+        dataOutput.writeLong(waitRequestsTimer.getValue());
+        dataOutput.writeLong(bytesLoadedFromDisk);
+        dataOutput.writeLong(bytesStoredOnDisk);
+        dataOutput.writeDouble(graphPercentageInMemory);
+    }
 }

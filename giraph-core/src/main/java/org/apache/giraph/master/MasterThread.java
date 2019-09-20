@@ -60,6 +60,8 @@ public class MasterThread<I extends WritableComparable, V extends Writable,
   private final boolean superstepCounterOn;
   /** Setup seconds */
   private double setupSecs = 0d;
+  /** Prefix for FDC benchmark metric dump */
+  public static final String FDC_PREFIX = "FDC";
   /** Superstep timer (in seconds) map */
   private final Map<Long, Double> superstepSecsMap =
       new TreeMap<Long, Double>();
@@ -159,27 +161,46 @@ public class MasterThread<I extends WritableComparable, V extends Writable,
           increment(System.currentTimeMillis() - endMillis);
         if (LOG.isInfoEnabled()) {
           LOG.info("setup: Took " + setupSecs + " seconds.");
+
+          // Add custom metric dump for FDC benchmarks
+          String actionName = FDC_PREFIX + "_MASTER_THREAD_SETUP";
+          LOG.info(actionName + "," + setupSecs);
         }
         for (Entry<Long, Double> entry : superstepSecsMap.entrySet()) {
           if (LOG.isInfoEnabled()) {
+            String actionName = FDC_PREFIX + "_MASTER_THREAD_SUPERSTEP";
+
             if (entry.getKey().longValue() ==
                 BspService.INPUT_SUPERSTEP) {
               LOG.info("input superstep: Took " +
                   entry.getValue() + " seconds.");
+
+              // Add custom metric dump for FDC benchmarks
+              LOG.info(actionName + ",-1," + entry.getValue());
             } else {
               LOG.info("superstep " + entry.getKey() + ": Took " +
                   entry.getValue() + " seconds.");
+
+              // Add custom metric dump for FDC benchmarks
+              LOG.info(actionName + "," + entry.getKey() + "," + entry.getValue());
             }
+
           }
           context.progress();
         }
         if (LOG.isInfoEnabled()) {
-          LOG.info("shutdown: Took " +
-              (System.currentTimeMillis() - endMillis) /
-              1000.0d + " seconds.");
-          LOG.info("total: Took " +
-              ((System.currentTimeMillis() - initializeMillis) /
-              1000.0d) + " seconds.");
+          String shutDownActionName = FDC_PREFIX + "_MASTER_THREAD_SHUTDOWN";
+          String totalActionName = FDC_PREFIX + "_MASTER_THREAD_TOTAL";
+
+          double shutdownSecs = (System.currentTimeMillis() - endMillis) / 1000.0d;
+          double totalSecs = (System.currentTimeMillis() - initializeMillis) / 1000.0d;
+
+          LOG.info("shutdown: Took " + shutdownSecs + " seconds.");
+          LOG.info("total: Took " + totalSecs + " seconds.");
+
+          // Add custom metric dump for FDC benchmarks
+          LOG.info(shutDownActionName + "," + shutdownSecs);
+          LOG.info(totalActionName + "," + totalSecs);
         }
         GiraphTimers.getInstance().getTotalMs().
           increment(System.currentTimeMillis() - initializeMillis);

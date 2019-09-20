@@ -89,6 +89,10 @@ public class InboundByteCounter extends ChannelInboundHandlerAdapter implements
     return delegate.getMetrics();
   }
 
+  public String getMetricsCSV() {
+    return delegate.getMetricsCSV();
+  }
+
   @Override
   public String getMetricsWindow(int minMsecsWindow) {
     return delegate.getMetricsWindow(minMsecsWindow);

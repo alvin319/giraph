@@ -175,6 +175,23 @@ public class ByteCounterDelegate implements ByteCounter {
     return getMetricsHelper(mBytesProcessed, mBytesProcessedPerReq);
   }
 
+  public String getMetricsCSV() {
+    double mBytesProcessed = bytesProcessed.get() / MEGABYTE;
+    long curProcessedRequests = processedRequests.get();
+    double mBytesProcessedPerReq = (curProcessedRequests == 0) ? 0 : mBytesProcessed / curProcessedRequests;
+
+    StringBuilder builder = new StringBuilder();
+    builder.append(DOUBLE_FORMAT.format(getMbytesPerSecProcessed()));
+    builder.append(',');
+    builder.append(DOUBLE_FORMAT.format(mBytesProcessed));
+    builder.append(',');
+    builder.append(DOUBLE_FORMAT.format(mBytesProcessedPerReq));
+    builder.append(',');
+    builder.append(((TIME.getMilliseconds() - startMsecs.get()) / 1000f));
+
+    return builder.toString();
+  }
+
   @Override
   public String getMetricsWindow(int minMsecsWindow) {
     long lastUpdatedMsecs =  metricsWindowLastUpdatedMsecs.get();
